@@ -1,5 +1,5 @@
 [workspace]
-members = ["pgpt-extension", "pgpt-driver"]
+members = [".", "pgpt-driver"]
 resolver = "2"
 
 [workspace.package]
@@ -7,6 +7,7 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace.dependencies]
+pgrx = { version = "0.13.0", features = ["pg17"] }
 clap = { version = "4.2.4", features = ["derive"] }
 eyre = "0.6.12"
 hf-hub = "0.4.1"
@@ -14,3 +15,16 @@ serde = "1.0.217"
 serde_json = "1.0.138"
 tracing-chrome = "0.7.2"
 tracing-subscriber = "0.3.19"
+
+[package]
+name = "pgpt"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+pgrx.workspace = true
+eyre.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing-chrome.workspace = true
+tracing-subscriber.workspace = true

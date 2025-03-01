@@ -51,7 +51,7 @@
           postgresql = pkgs.postgresql_16;
           rustToolchain = inputs.fenix.packages.${system}.stable.toolchain;
 
-          src = ./pgpt-extension;
+          src = ./.;
 
           #src = inputs.nix-filter.lib {
           #root = ./.;
