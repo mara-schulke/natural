@@ -26,17 +26,25 @@
       in
       {
         devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            icu
-            icu.dev
-            darwin.ICU.dev
-            darwin.ICU
-            readline.dev
-            bison
-            zlib
-            pkg-config
-            flex
-          ];
+          buildInputs =
+            with pkgs;
+            [
+              icu
+              icu.dev
+              readline.dev
+              bison
+              zlib
+              pkg-config
+              flex
+            ]
+            ++ lib.optionals pkgs.stdenv.isDarwin [
+              libiconv
+              darwin.apple_sdk.frameworks.SystemConfiguration
+              darwin.apple_sdk.frameworks.CoreFoundation
+              darwin.apple_sdk.frameworks.Foundation
+              darwin.ICU.dev
+              darwin.ICU
+            ];
 
           shellHook = ''
             export PKG_CONFIG_PATH="${pkgs.icu}/lib/pkgconfig";
