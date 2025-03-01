@@ -2,7 +2,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    flake-parts.url = "github:hercules-ci/flake-parts";
+    utils.url = "github:numtide/flake-utils";
 
     fenix = {
       url = "github:nix-community/fenix";
@@ -15,67 +15,54 @@
       inputs.fenix.follows = "fenix";
     };
 
-    crane = {
-      url = "github:ipetkov/crane";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    crane.url = "github:ipetkov/crane";
   };
   outputs =
-    { flake-parts, rust-overlay }@inputs:
-    flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = [
-        "x86_64-linux"
-        "aarch64-linux"
-      ];
-      perSystem =
-        {
-          pkgs,
-          system,
-          inputs',
-          lib,
-          ...
-        }:
-        {
-          devShells.default = lib.mkShell {
-            buildInputs = with pkgs; [
-              icu
-              icu.dev
-              darwin.ICU.dev
-              darwin.ICU
-              readline.dev
-              bison
-              zlib
-              pkg-config
-              flex
-            ];
+    { utils, nixpkgs, ... }@inputs:
+    utils.lib.eachDefaultSystem (
+      system:
+      let
+        pkgs = nixpkgs.legacyPackages.${system};
+      in
+      {
+        devShells.default = pkgs.mkShell {
+          buildInputs = with pkgs; [
+            icu
+            icu.dev
+            darwin.ICU.dev
+            darwin.ICU
+            readline.dev
+            bison
+            zlib
+            pkg-config
+            flex
+          ];
 
-            shellHook = ''
-              export PKG_CONFIG_PATH="${pkgs.icu}/lib/pkgconfig";
-              export LDFLAGS="-L${pkgs.icu}/lib"
-              export CPPFLAGS="-I${pkgs.icu}/include"
-            '';
-          };
-
-          packages = {
-            pgpt = inputs.pgrx.lib.buildPgrxExtension {
-              inherit system;
-
-              postgresql = pkgs.postgresql_16;
-              rustToolchain = inputs'.fenix.packages.stable.toolchain;
-
-              src = ./.;
-
-              #src = inputs.nix-filter.lib {
-              #root = ./.;
-              #include = [
-              #"src"
-              #"Cargo.toml"
-              #"Cargo.lock"
-              #"arrays.control"
-              #];
-              #};
-            };
-          };
+          shellHook = ''
+            export PKG_CONFIG_PATH="${pkgs.icu}/lib/pkgconfig";
+            export LDFLAGS="-L${pkgs.icu}/lib"
+            export CPPFLAGS="-I${pkgs.icu}/include"
+          '';
         };
-    };
+
+        packages.pgpt = inputs.pgrx.lib.buildPgrxExtension {
+          inherit system;
+
+          postgresql = pkgs.postgresql_16;
+          rustToolchain = inputs.fenix.packages.${system}.stable.toolchain;
+
+          src = ./pgpt-extension;
+
+          #src = inputs.nix-filter.lib {
+          #root = ./.;
+          #include = [
+          #"src"
+          #"Cargo.toml"
+          #"Cargo.lock"
+          #"arrays.control"
+          #];
+          #};
+        };
+      }
+    );
 }

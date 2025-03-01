@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-pgrx = "0.13.0"
+pgrx = { version = "0.13.0", features = ["pg17"] }
 eyre.workspace = true
 serde.workspace = true
 serde_json.workspace = true
