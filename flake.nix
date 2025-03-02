@@ -1,24 +1,25 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-
-    utils.url = "github:numtide/flake-utils";
-
-    fenix = {
-      url = "github:nix-community/fenix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    pgrx = {
-      url = "github:justinrubek/pgrx/reintroduce-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.fenix.follows = "fenix";
-    };
-
     crane.url = "github:ipetkov/crane";
+
+    polar = {
+      url = "github:hemisphere-studio/polar";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.crane.follows = "crane";
+    };
+
+    utils.follows = "polar/utils";
   };
   outputs =
-    { utils, nixpkgs, ... }@inputs:
+    {
+      self,
+      utils,
+      nixpkgs,
+      polar,
+      ...
+    }:
+
     utils.lib.eachDefaultSystem (
       system:
       let
@@ -53,24 +54,14 @@
           '';
         };
 
-        packages.pgpt = inputs.pgrx.lib.buildPgrxExtension {
+        packages.pgpt = polar.lib.buildPgrxExtension {
           inherit system;
 
           postgresql = pkgs.postgresql_16;
-          rustToolchain = inputs.fenix.packages.${system}.stable.toolchain;
-
           src = ./.;
-
-          #src = inputs.nix-filter.lib {
-          #root = ./.;
-          #include = [
-          #"src"
-          #"Cargo.toml"
-          #"Cargo.lock"
-          #"arrays.control"
-          #];
-          #};
         };
+
+        checks.pgpt = self.packages.${system}.pgpt;
       }
     );
 }
