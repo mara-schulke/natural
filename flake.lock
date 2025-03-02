@@ -43,11 +43,11 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1740907762,
-        "narHash": "sha256-IFcLJJg/M6b4UL+ySdnyHWE2E9+TYur8jA8aXFOv/4g=",
+        "lastModified": 1740908646,
+        "narHash": "sha256-l4XMW27uP5bL6FDQCtUWjEkf0kYNyVXA12n+sFSCe6k=",
         "owner": "hemisphere-studio",
         "repo": "polar",
-        "rev": "53bfefc91485eb973efa77b528c75031b07f692a",
+        "rev": "54400c76da4118b4e103cc6a6063705ea429b161",
         "type": "github"
       },
       "original": {
