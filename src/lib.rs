@@ -114,6 +114,9 @@ fn issue1209_fixed() -> Result<Option<String>, Box<dyn std::error::Error>> {
     Ok(res.first().cloned().flatten().map(|s| s.to_string()))
 }
 
+#[pg_guard]
+pub unsafe extern "C" fn _PG_init() {}
+
 #[cfg(any(test, feature = "pg_test"))]
 #[pg_schema]
 mod tests {
