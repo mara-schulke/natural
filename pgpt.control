@@ -1,4 +1,4 @@
-comment = 'pgpt:  Created by pgrx'
+comment = 'pgpt'
 default_version = '@CARGO_VERSION@'
 module_pathname = '$libdir/pgpt'
 relocatable = false
