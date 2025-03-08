@@ -68,7 +68,9 @@ impl TextGeneration {
 
     fn run(&mut self, prompt: &str, sample_len: usize) -> Result<()> {
         use std::io::Write;
+
         self.tokenizer.clear();
+
         let mut tokens = self
             .tokenizer
             .tokenizer()
@@ -76,11 +78,13 @@ impl TextGeneration {
             .map_err(E::msg)?
             .get_ids()
             .to_vec();
+
         for &t in tokens.iter() {
             if let Some(t) = self.tokenizer.next_token(t)? {
                 print!("{t}")
             }
         }
+
         std::io::stdout().flush()?;
 
         let mut generated_tokens = 0usize;
@@ -121,11 +125,15 @@ impl TextGeneration {
                 std::io::stdout().flush()?;
             }
         }
+
         let dt = start_gen.elapsed();
+
         if let Some(rest) = self.tokenizer.decode_rest().map_err(E::msg)? {
             print!("{rest}");
         }
+
         std::io::stdout().flush()?;
+
         println!(
             "\n{generated_tokens} tokens generated ({:.2} token/s)",
             generated_tokens as f64 / dt.as_secs_f64(),
@@ -239,6 +247,7 @@ fn main() -> Result<()> {
     } else {
         None
     };
+
     println!(
         "avx: {}, neon: {}, simd128: {}, f16c: {}",
         candle_core::utils::with_avx(),
@@ -246,6 +255,7 @@ fn main() -> Result<()> {
         candle_core::utils::with_simd128(),
         candle_core::utils::with_f16c()
     );
+
     println!(
         "temp: {:.2} repeat-penalty: {:.2} repeat-last-n: {}",
         args.temperature.unwrap_or(0.),
@@ -254,9 +264,11 @@ fn main() -> Result<()> {
     );
 
     let start = std::time::Instant::now();
+
     let api = ApiBuilder::new()
         .with_token(Some(env!("HF_TOKEN").to_string()))
         .build()?;
+
     let model_id = match args.model_id {
         Some(model_id) => model_id,
         None => {
