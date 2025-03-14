@@ -74,6 +74,13 @@
               zlib
               pkg-config
               flex
+
+              python3
+              python3Packages.numpy
+              python3Packages.sentencepiece
+              python3Packages.torch
+              python3Packages.safetensors
+              python3Packages.transformers
             ]
             ++ lib.optionals pkgs.stdenv.isDarwin [
               libiconv
