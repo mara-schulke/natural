@@ -51,6 +51,7 @@ lto = "fat"
 codegen-units = 1
 
 [dependencies]
+crossbeam-channel = "0.5"
 candle-core = { version = "0.8.3", features = ["metal"] }
 candle-nn = { version = "0.8.3", features = ["metal"] }
 candle-transformers = { version = "0.8.3", features = ["metal"] }
@@ -63,6 +64,7 @@ serde_json.workspace = true
 tokenizers = "0.21.0"
 tracing-chrome.workspace = true
 tracing-subscriber.workspace = true
+uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
 pgrx-tests = "=0.13.1"
