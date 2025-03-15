@@ -4,11 +4,10 @@ use eyre::{Error as E, Result};
 use candle_core::{DType, Device, Tensor};
 use candle_transformers::generation::{LogitsProcessor, Sampling};
 use candle_transformers::models::mistral::Model as Mistral;
-use pgpt_driver::model::Model;
 use tokenizers::Tokenizer;
-use utils::token_output_stream::TokenOutputStream;
 
-mod utils;
+use pgpt::driver::model::Model;
+use pgpt::driver::utils::token_output_stream::TokenOutputStream;
 
 struct TextGeneration {
     model: Mistral,
@@ -206,7 +205,7 @@ fn main() -> Result<()> {
         mistral,
         device,
         tokenizer,
-    } = pgpt_driver::model::Model::load("./resources")?;
+    } = pgpt::driver::model::Model::load("./resources")?;
 
     let mut pipeline = TextGeneration::new(
         mistral,

@@ -2,6 +2,8 @@ use pgrx::prelude::*;
 
 ::pgrx::pg_module_magic!();
 
+pub mod driver;
+
 extension_sql!(
     r#"
     CREATE TABLE history (

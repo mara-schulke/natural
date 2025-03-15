@@ -41,7 +41,7 @@ impl Model {
         };
 
         // Always try to use GPU for the time being
-        let device = crate::utils::device(false)?;
+        let device = crate::driver::utils::device(false)?;
 
         let mistral = {
             let dtype = DType::BF16;

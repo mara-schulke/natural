@@ -2324,25 +2324,14 @@ dependencies = [
 name = "pgpt"
 version = "0.1.0"
 dependencies = [
- "eyre",
- "pgrx",
- "pgrx-tests",
- "serde",
- "serde_json",
- "tracing-chrome",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "pgpt-driver"
-version = "0.1.0"
-dependencies = [
  "candle-core",
  "candle-nn",
  "candle-transformers",
  "clap",
  "eyre",
  "hf-hub",
+ "pgrx",
+ "pgrx-tests",
  "serde",
  "serde_json",
  "tokenizers",

@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "pgpt-driver"]
+members = ["."]
 resolver = "2"
 
 [workspace.package]
@@ -27,6 +27,10 @@ crate-type = ["cdylib", "lib"]
 name = "pgrx_embed_pgpt"
 path = "./src/bin/pgrx_embed.rs"
 
+[[bin]]
+name = "driver-repl"
+path = "./src/bin/driver_repl.rs"
+
 [features]
 default = ["pg17"]
 pg12 = ["pgrx/pg12", "pgrx-tests/pg12" ]
@@ -47,10 +51,16 @@ lto = "fat"
 codegen-units = 1
 
 [dependencies]
-pgrx = "=0.13.1"
+candle-core = { version = "0.8.3", features = ["metal"] }
+candle-nn = { version = "0.8.3", features = ["metal"] }
+candle-transformers = { version = "0.8.3", features = ["metal"] }
+clap.workspace = true
 eyre.workspace = true
+hf-hub = "0.4.1"
+pgrx = "=0.13.1"
 serde.workspace = true
 serde_json.workspace = true
+tokenizers = "0.21.0"
 tracing-chrome.workspace = true
 tracing-subscriber.workspace = true
 
