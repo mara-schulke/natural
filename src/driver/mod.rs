@@ -19,8 +19,11 @@ pub mod generation;
 pub mod model;
 pub mod utils;
 
-static MODEL: LazyLock<model::Model> =
-    LazyLock::new(|| Model::load("./resources").expect("loading the model failed"));
+static MODEL: LazyLock<model::Model> = LazyLock::new(|| {
+    dbg!(concat!(env!("PWD"), "/resources"));
+
+    Model::load(concat!(env!("PWD"), "/resources")).expect("loading the model failed")
+});
 
 #[derive(Debug)]
 struct Context {
@@ -100,7 +103,7 @@ impl Driver {
     }
 
     /// Push the drivers event loop
-    fn push(&mut self) {
+    pub fn push(&mut self) {
         let prompt = self.prompts.recv().unwrap();
 
         let start = Instant::now();

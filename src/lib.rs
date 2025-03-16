@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use driver::Driver;
 use pgrx::bgworkers::*;
 use pgrx::prelude::*;
 
@@ -121,9 +122,9 @@ fn issue1209_fixed() -> Result<Option<String>, Box<dyn std::error::Error>> {
 
 #[pg_guard]
 pub extern "C-unwind" fn _PG_init() {
-    BackgroundWorkerBuilder::new("Background Worker Example")
-        .set_function("background_worker_main")
-        .set_library("bgworker")
+    BackgroundWorkerBuilder::new("PGPT Inference Worker")
+        .set_function("pgpt_inference_worker")
+        .set_library("pgpt")
         .set_argument(42i32.into_datum())
         .enable_spi_access()
         .load();
@@ -148,10 +149,10 @@ pub extern "C-unwind" fn pgpt_inference_worker(arg: pg_sys::Datum) {
         arg.unwrap()
     );
 
-    //let driver = Driver::init();
+    let mut driver = Driver::boot();
 
     while BackgroundWorker::wait_latch(Some(Duration::from_millis(25))) {
-        //driver.push();
+        driver.push();
     }
 
     log!(
