@@ -108,11 +108,22 @@ impl Driver {
 
 struct Prompt {
     id: Uuid,
+    payload: String,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 enum Token {
+    Completion { prompt: Uuid, token: String },
     Eof { prompt: Uuid },
+}
+
+impl Token {
+    /// Prompt ID this token belongs to
+    pub fn pid(&self) -> Uuid {
+        match self {
+            Self::Eof { prompt } | Self::Completion { prompt, .. } => prompt,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -132,6 +143,33 @@ impl DriverHandle {
             .unwrap()
             .clone()
             .expect("No pgpt driver thread is running")
+    }
+
+    /// Send a prompt to the driver
+    pub fn prompt(&self, prompt: impl AsRef<str>) -> String {
+        let id = Uuid::new_v4();
+
+        self.prompt
+            .send(Prompt {
+                id,
+                payload: prompt.as_ref().to_string(),
+            })
+            .expect("Driver must be running send prompts");
+
+        let mut tokens = vec![];
+
+        while let Some(token) = self.token.recv().unwrap() {
+            if token.pid() != id {
+                continue;
+            }
+
+            match token {
+                Token::Completion { prompt, token } => tokens.push(token),
+                Token::Eof { prompt } => break,
+            }
+        }
+
+        tokens.join("")
     }
 }
 
