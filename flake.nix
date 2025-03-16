@@ -84,6 +84,7 @@
             ]
             ++ lib.optionals pkgs.stdenv.isDarwin [
               libiconv
+              darwin.xcode_16_2
               darwin.apple_sdk.frameworks.SystemConfiguration
               darwin.apple_sdk.frameworks.CoreFoundation
               darwin.apple_sdk.frameworks.Foundation
@@ -103,6 +104,8 @@
             pgrx-install() {
               cargo pgrx install -c $HOME/.pgrx/17.*/pgrx-install/bin/pg_config
             }
+
+            exec zsh 
           '';
         };
       }
