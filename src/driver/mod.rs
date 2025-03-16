@@ -1,12 +1,15 @@
 #![allow(unused)]
 
+use std::sync::{self, Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 use std::{
-    cell::RefCell,
     path::{Path, PathBuf},
     sync::LazyLock,
 };
 
 use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
+use eyre::eyre;
 use uuid::Uuid;
 
 use model::Model;
@@ -15,25 +18,39 @@ pub mod model;
 pub mod utils;
 
 static MODEL: LazyLock<model::Model> =
-    LazyLock::new(|| Model::load("./resources").expect("loading the mode failed"));
+    LazyLock::new(|| Model::load("./resources").expect("loading the model failed"));
 
+#[derive(Debug)]
 struct Context {
-    handle: RefCell<Option<DriverHandle>>,
+    handle: Arc<Mutex<Option<DriverHandle>>>,
 }
 
-const CONTEXT: Context = Context {
-    handle: RefCell::new(None),
-};
+impl Context {
+    fn try_replace(&self, handle: DriverHandle) -> eyre::Result<()> {
+        let mut lock = self
+            .handle
+            .lock()
+            .map_err(|_| eyre!("Failed to lock handle"))?;
 
-struct Driver {
+        lock.replace(handle);
+
+        Ok(())
+    }
+}
+
+static CONTEXT: LazyLock<Context> = LazyLock::new(|| Context {
+    handle: Arc::new(Mutex::new(None)),
+});
+
+pub struct Driver {
     model: &'static Model,
     prompts: Receiver<Prompt>,
     tokens: Sender<Token>,
 }
 
 impl Driver {
-    /// Detaches the driver from the current thread
-    pub fn detach() -> DriverHandle {
+    /// Takes a while
+    pub fn boot() -> Self {
         // NOTE:
         // Allow at most 2 concurrent prompts, as we are not running on
         // good hardware. This proves that we can do concurrent inference without allowing to
@@ -48,33 +65,44 @@ impl Driver {
             token: trx,
         };
 
-        std::thread::spawn(|| {
-            let mut driver = Self {
-                // NOTE:
-                // This ensures we are hitting the lazy lock
-                // code and load the model into memory
-                model: &MODEL,
-                prompts: prx,
-                tokens: ttx,
+        CONTEXT.try_replace(handle.clone()).unwrap();
+
+        let driver = Self {
+            // NOTE:
+            // This ensures we are hitting the lazy lock
+            // code and load the model into memory
+            model: &MODEL,
+            prompts: prx,
+            tokens: ttx,
+        };
+
+        driver
+    }
+
+    pub fn attach() -> DriverHandle {
+        loop {
+            let Ok(handle) = CONTEXT.handle.try_lock() else {
+                continue;
             };
 
-            // Push the event loop
-            loop {
-                driver.push();
+            if handle.is_some() {
+                break;
             }
 
-            // Unset the handle to make it impossible to obtain new handles
-            CONTEXT.handle.replace(None);
-        });
+            drop(handle);
 
-        CONTEXT.handle.replace(Some(handle.clone()));
+            thread::sleep(Duration::from_millis(25));
+        }
 
-        handle
+        DriverHandle::current()
     }
 
     /// Push the drivers event loop
     fn push(&mut self) {
-        todo!()
+        self.tokens.send(Token::Eof {
+            prompt: Uuid::from_u128(1),
+        });
+        //todo!()
     }
 }
 
@@ -82,11 +110,12 @@ struct Prompt {
     id: Uuid,
 }
 
+#[derive(Debug, PartialEq, Eq)]
 enum Token {
     Eof { prompt: Uuid },
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct DriverHandle {
     prompt: Sender<Prompt>,
     token: Receiver<Token>,
@@ -99,7 +128,8 @@ impl DriverHandle {
     pub fn current() -> Self {
         CONTEXT
             .handle
-            .borrow()
+            .lock()
+            .unwrap()
             .clone()
             .expect("No pgpt driver thread is running")
     }
@@ -107,10 +137,31 @@ impl DriverHandle {
 
 #[cfg(test)]
 mod tests {
+    use std::thread;
+
+    use uuid::Uuid;
+
+    use crate::driver::{DriverHandle, Token, CONTEXT};
+
     use super::Driver;
 
     #[test]
     fn setup() {
-        let handle = Driver::detach();
+        thread::spawn(|| {
+            let mut driver = Driver::boot();
+
+            driver.push();
+        });
+
+        let handle = Driver::attach();
+
+        let token = handle.token.recv().unwrap();
+
+        assert_eq!(
+            token,
+            Token::Eof {
+                prompt: Uuid::from_u128(1)
+            }
+        )
     }
 }

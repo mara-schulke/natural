@@ -1,3 +1,6 @@
+use std::time::Duration;
+
+use pgrx::bgworkers::*;
 use pgrx::prelude::*;
 
 ::pgrx::pg_module_magic!();
@@ -117,7 +120,45 @@ fn issue1209_fixed() -> Result<Option<String>, Box<dyn std::error::Error>> {
 }
 
 #[pg_guard]
-pub unsafe extern "C" fn _PG_init() {}
+pub extern "C-unwind" fn _PG_init() {
+    BackgroundWorkerBuilder::new("Background Worker Example")
+        .set_function("background_worker_main")
+        .set_library("bgworker")
+        .set_argument(42i32.into_datum())
+        .enable_spi_access()
+        .load();
+}
+
+#[pg_guard]
+#[no_mangle]
+pub extern "C-unwind" fn pgpt_inference_worker(arg: pg_sys::Datum) {
+    let arg = unsafe { i32::from_polymorphic_datum(arg, false, pg_sys::INT4OID) };
+
+    // these are the signals we want to receive.  If we don't attach the SIGTERM handler, then
+    // we'll never be able to exit via an external notification
+    BackgroundWorker::attach_signal_handlers(SignalWakeFlags::SIGHUP | SignalWakeFlags::SIGTERM);
+
+    // we want to be able to use SPI against the specified database (postgres), as the superuser which
+    // did the initdb. You can specify a specific user with Some("my_user")
+    BackgroundWorker::connect_worker_to_spi(Some("postgres"), None);
+
+    log!(
+        "Hello from inside the {} BGWorker!  Argument value={}",
+        BackgroundWorker::get_name(),
+        arg.unwrap()
+    );
+
+    //let driver = Driver::init();
+
+    while BackgroundWorker::wait_latch(Some(Duration::from_millis(25))) {
+        //driver.push();
+    }
+
+    log!(
+        "Goodbye from inside the {} BGWorker! ",
+        BackgroundWorker::get_name()
+    );
+}
 
 #[cfg(any(test, feature = "pg_test"))]
 #[pg_schema]
