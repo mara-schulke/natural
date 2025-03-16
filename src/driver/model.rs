@@ -10,6 +10,7 @@ use candle_transformers::models::mistral::{Config, Model as Mistral};
 use eyre::{eyre, Context, Result};
 use tokenizers::Tokenizer;
 
+#[derive(Clone)]
 pub struct Model {
     pub mistral: Mistral,
     pub device: Device,

@@ -2,7 +2,7 @@
 
 use std::sync::{self, Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use std::{
     path::{Path, PathBuf},
     sync::LazyLock,
@@ -10,10 +10,12 @@ use std::{
 
 use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
 use eyre::eyre;
+use generation::TextGenerator;
 use uuid::Uuid;
 
 use model::Model;
 
+pub mod generation;
 pub mod model;
 pub mod utils;
 
@@ -99,29 +101,43 @@ impl Driver {
 
     /// Push the drivers event loop
     fn push(&mut self) {
-        self.tokens.send(Token::Eof {
-            prompt: Uuid::from_u128(1),
-        });
-        //todo!()
+        let prompt = self.prompts.recv().unwrap();
+
+        let start = Instant::now();
+        let model = self.model.clone();
+        let end = Instant::now();
+
+        println!(
+            "seconds to clone model = {}",
+            end.duration_since(start).as_secs()
+        );
+
+        let tokens = TextGenerator::new(model, 0, None, None, None, 1.1, 64)
+            .run(prompt)
+            .unwrap();
+
+        for token in tokens {
+            self.tokens.send(token).unwrap();
+        }
     }
 }
 
-struct Prompt {
+pub(self) struct Prompt {
     id: Uuid,
     payload: String,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum Token {
+pub(self) enum Token {
     Completion { prompt: Uuid, token: String },
-    Eof { prompt: Uuid },
+    Eos { prompt: Uuid },
 }
 
 impl Token {
     /// Prompt ID this token belongs to
     pub fn pid(&self) -> Uuid {
         match self {
-            Self::Eof { prompt } | Self::Completion { prompt, .. } => prompt,
+            Self::Eos { prompt } | Self::Completion { prompt, .. } => *prompt,
         }
     }
 }
@@ -158,14 +174,14 @@ impl DriverHandle {
 
         let mut tokens = vec![];
 
-        while let Some(token) = self.token.recv().unwrap() {
+        while let Ok(token) = self.token.recv() {
             if token.pid() != id {
                 continue;
             }
 
             match token {
                 Token::Completion { prompt, token } => tokens.push(token),
-                Token::Eof { prompt } => break,
+                Token::Eos { prompt } => break,
             }
         }
 
@@ -188,18 +204,15 @@ mod tests {
         thread::spawn(|| {
             let mut driver = Driver::boot();
 
-            driver.push();
+            loop {
+                driver.push();
+            }
         });
 
         let handle = Driver::attach();
 
-        let token = handle.token.recv().unwrap();
+        let answer = handle.prompt("Hi mistral!");
 
-        assert_eq!(
-            token,
-            Token::Eof {
-                prompt: Uuid::from_u128(1)
-            }
-        )
+        assert_eq!(answer, "Hi!");
     }
 }
