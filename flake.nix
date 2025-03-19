@@ -75,7 +75,7 @@
               pkg-config
               flex
 
-              python3
+              python311
               #python3Packages.numpy
               #python3Packages.sentencepiece
               #python3Packages.torch
@@ -105,14 +105,10 @@
             ];
 
           shellHook = ''
-            cd -
-
             if [ ! -d ".venv" ]; then
               python -m venv .venv
               source .venv/bin/activate
-              pip install numpy absl-py sentencepiece tf-keras torch tensorflow tensorflow-macos tensorflow-metal
-              pip install accelerate tokenizers transformers
-              pip install absl-py safetensors
+              pip install -r requirements.txt
             else
               source .venv/bin/activate
             fi
@@ -128,8 +124,6 @@
             pgrx-install() {
               cargo pgrx install -c $HOME/.pgrx/17.*/pgrx-install/bin/pg_config
             }
-
-            exec zsh 
           '';
         };
       }
