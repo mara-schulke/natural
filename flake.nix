@@ -76,23 +76,47 @@
               flex
 
               python3
-              python3Packages.numpy
-              python3Packages.sentencepiece
-              python3Packages.torch
-              python3Packages.safetensors
-              python3Packages.transformers
+              #python3Packages.numpy
+              #python3Packages.sentencepiece
+              #python3Packages.torch
+              #python3Packages.safetensors
+              #python3Packages.transformers
+              #python3Packages.tokenizers
+              #python3Packages.accelerate
+              #python3Packages.tensorflow-deps
+              #python3Packages.pytorch
+              #python3Packages.torchvision
+              #python3Packages.torchaudio
+              #python3Packages.tensorflowWithoutCuda
+              #python3Packages.pip
+              #python3Packages.virtualenv
             ]
             ++ lib.optionals pkgs.stdenv.isDarwin [
+              #python3Packages.tensorflow-macos
+              #python3Packages.tensorflow-metal
               libiconv
-              darwin.xcode_16_2
               darwin.apple_sdk.frameworks.SystemConfiguration
               darwin.apple_sdk.frameworks.CoreFoundation
               darwin.apple_sdk.frameworks.Foundation
+              darwin.apple_sdk.frameworks.Metal
               darwin.ICU.dev
               darwin.ICU
+              # darwin.xcode_16_2
             ];
 
           shellHook = ''
+            cd -
+
+            if [ ! -d ".venv" ]; then
+              python -m venv .venv
+              source .venv/bin/activate
+              pip install numpy absl-py sentencepiece tf-keras torch tensorflow tensorflow-macos tensorflow-metal
+              pip install accelerate tokenizers transformers
+              pip install absl-py safetensors
+            else
+              source .venv/bin/activate
+            fi
+
             export RUSTFLAGS="-Clink-args=-Wl,-undefined,dynamic_lookup";
             export PKG_CONFIG_PATH="${pkgs.icu}/lib/pkgconfig";
             export LDFLAGS="-L${pkgs.icu}/lib";
