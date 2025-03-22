@@ -10,19 +10,29 @@ use std::{
 
 use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
 use eyre::eyre;
-use generation::TextGenerator;
+//use generation::TextGenerator;
 use uuid::Uuid;
 
 use model::Model;
 
-pub mod generation;
 pub mod model;
-pub mod utils;
 
 static MODEL: LazyLock<model::Model> = LazyLock::new(|| {
-    dbg!(concat!(env!("PWD"), "/resources"));
+    dbg!(concat!(env!("PWD"), "/mistral.gguf"));
 
-    Model::load(concat!(env!("PWD"), "/resources")).expect("loading the model failed")
+    let start = Instant::now();
+
+    let model =
+        Model::load(concat!(env!("PWD"), "/mistral.gguf")).expect("loading the model failed");
+
+    let end = Instant::now();
+
+    println!(
+        "seconds to load model = {}",
+        end.duration_since(start).as_secs()
+    );
+
+    model
 });
 
 #[derive(Debug)]
@@ -72,30 +82,31 @@ impl Driver {
 
         CONTEXT.try_replace(handle.clone()).unwrap();
 
-        let driver = Self {
+        Self {
             // NOTE:
             // This ensures we are hitting the lazy lock
             // code and load the model into memory
             model: &MODEL,
             prompts: prx,
             tokens: ttx,
-        };
-
-        driver
+        }
     }
 
     pub fn attach() -> DriverHandle {
         loop {
+            dbg!("lock", &CONTEXT);
             let Ok(handle) = CONTEXT.handle.try_lock() else {
                 continue;
             };
 
+            dbg!("pre");
             if handle.is_some() {
                 break;
             }
 
             drop(handle);
 
+            dbg!("sleep");
             thread::sleep(Duration::from_millis(25));
         }
 
@@ -104,34 +115,45 @@ impl Driver {
 
     /// Push the drivers event loop
     pub fn push(&mut self) {
+        dbg!("recv");
+
         let prompt = self.prompts.recv().unwrap();
 
-        let start = Instant::now();
-        let model = self.model.clone();
-        let end = Instant::now();
+        dbg!("gen");
 
-        println!(
-            "seconds to clone model = {}",
-            end.duration_since(start).as_secs()
-        );
+        let tokens = generation::Generator(&self.model).run(prompt).unwrap();
 
-        let tokens = TextGenerator::new(model, 0, None, None, None, 1.1, 64)
-            .run(prompt)
-            .unwrap();
+        dbg!("token");
 
         for token in tokens {
             self.tokens.send(token).unwrap();
         }
     }
+
+    pub fn model(&self) -> &'static Model {
+        self.model
+    }
 }
 
-pub(self) struct Prompt {
+pub struct Prompt {
     id: Uuid,
     payload: String,
 }
 
+impl<T> From<T> for Prompt
+where
+    T: Into<String>,
+{
+    fn from(value: T) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            payload: value.into(),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
-pub(self) enum Token {
+pub enum Token {
     Completion { prompt: Uuid, token: String },
     Eos { prompt: Uuid },
 }
@@ -146,7 +168,7 @@ impl Token {
 }
 
 #[derive(Clone, Debug)]
-struct DriverHandle {
+pub struct DriverHandle {
     prompt: Sender<Prompt>,
     token: Receiver<Token>,
 }
@@ -189,6 +211,54 @@ impl DriverHandle {
         }
 
         tokens.join("")
+    }
+}
+
+pub mod generation {
+    use llama_cpp::{standard_sampler::StandardSampler, SessionParams};
+
+    use super::{model::Model, Prompt, Token};
+
+    pub struct Generator(pub &'static Model);
+
+    impl Generator {
+        pub fn run(&self, prompt: Prompt) -> eyre::Result<Vec<Token>> {
+            let mut ctx = self
+                .0
+                 .0
+                .create_session(SessionParams::default())
+                .expect("Failed to create session");
+
+            ctx.set_context(prompt.payload).unwrap();
+
+            let max_tokens = 128;
+            let mut decoded_tokens = 0;
+
+            let completions = ctx
+                .start_completing_with(StandardSampler::default(), max_tokens)?
+                .into_strings();
+
+            let mut tokens = vec![];
+
+            for completion in completions {
+                dbg!(&completion);
+
+                tokens.push(Token::Completion {
+                    prompt: prompt.id,
+                    token: completion,
+                });
+
+                decoded_tokens += 1;
+
+                if decoded_tokens > max_tokens {
+                    break;
+                }
+            }
+
+            tokens.push(Token::Eos { prompt: prompt.id });
+
+            Ok(tokens)
+        }
     }
 }
 

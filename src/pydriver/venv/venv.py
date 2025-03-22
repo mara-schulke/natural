@@ -1,51 +1,10 @@
+from __future__ import annotations
+
 import os
+import site
 import sys
-import subprocess
 
 __venv = None
-
-
-def use_virtualenv(venv_path):
-    """Manually configure sys.path to use a virtual environment."""
-
-    if not os.path.exists(venv_path):
-        print(f"Error: Virtual environment not found at {venv_path}")
-        return False
-
-    os.environ["VIRTUAL_ENV"] = venv_path
-
-    bin_folder = "Scripts" if os.name == "nt" else "bin"
-    os.environ["_OLD_VIRTUAL_PATH"] = os.environ.get("PATH", "")
-    os.environ["PATH"] = (
-        os.path.join(venv_path, bin_folder)
-        + os.pathsep
-        + os.environ["_OLD_VIRTUAL_PATH"]
-    )
-
-    if "PYTHONHOME" in os.environ:
-        os.environ["_OLD_VIRTUAL_PYTHONHOME"] = os.environ["PYTHONHOME"]
-        del os.environ["PYTHONHOME"]
-
-    python_version = f"python{sys.version_info.major}.{sys.version_info.minor}"
-
-    site_packages = (
-        os.path.join(venv_path, "lib", python_version, "site-packages")
-        if os.name != "nt"
-        else os.path.join(venv_path, "Lib", "site-packages")
-    )
-
-    if not os.path.exists(site_packages):
-        print(f"Error: Virtual environment site packages not found at {site_packages}")
-        return False
-
-    sys.path.insert(0, site_packages)
-
-    os.environ["_OLD_VIRTUAL_PS1"] = os.environ.get("PS1", "")
-    os.environ["VIRTUAL_ENV_PROMPT"] = f"({os.path.basename(venv_path)}) "
-
-    print(f"Activated virtual environment: {venv_path}")
-
-    return True
 
 
 def activate_venv(venv):
@@ -53,24 +12,52 @@ def activate_venv(venv):
     if __venv == venv:
         return True
 
-    if sys.platform in ("win32", "win64", "cygwin"):
-        activate = os.path.join(venv, "Scripts", "activate")
-    else:
-        activate = os.path.join(venv, "bin", "activate")
+    # Ensure venv path is absolute
+    venv = os.path.abspath(venv)
 
-    if os.path.exists(activate):
-        subprocess.run(f"source {activate}", shell=True, executable="/bin/bash")
+    if sys.platform in ("win32", "win64", "cygwin"):
+        activate_this = os.path.join(venv, "Scripts", "activate_this.py")
+        site_packages = os.path.join(venv, "Lib", "site-packages")
+    else:
+        activate_this = os.path.join(venv, "bin", "activate_this.py")
+        py_version = f"python{sys.version_info.major}.{sys.version_info.minor}"
+        site_packages = os.path.join(venv, "lib", py_version, "site-packages")
+
+    if os.path.exists(activate_this):
+        info(f"activating via {activate_this}")
+
+        # Add site-packages to sys.path first (before using activate_this)
+        if os.path.exists(site_packages) and site_packages not in sys.path:
+            sys.path.insert(0, site_packages)
+            # Also update site.addsitedir to properly handle .pth files
+            site.addsitedir(site_packages)
+            info(f"Added site-packages: {site_packages}")
+
+        # Run activate_this.py script
+        exec(open(activate_this).read(), dict(__file__=activate_this))
+
+        # Make sure the current directory is not in sys.path (to avoid importing from source)
+        if "" in sys.path:
+            sys.path.remove("")
+        if "." in sys.path:
+            sys.path.remove(".")
+
         __venv = venv
+        info(f"Virtual environment activated: {venv}")
         return True
     else:
-        print("virtualenv not found: %s" % venv, file=sys.stderr)
+        print(f"virtualenv not found: {venv}", file=sys.stderr)
         return False
 
 
 def freeze():
     try:
         from pip._internal.operations import freeze
-    except ImportError:  # pip < 10.0
+    except ImportError:
         from pip.operations import freeze
-
     return list(freeze.freeze())
+
+
+def get_sys_path():
+    """Return the current sys.path for debugging"""
+    return sys.path

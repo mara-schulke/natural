@@ -1,81 +1,72 @@
 use eyre::Result;
-use pgrx::iter::TableIterator;
-use pgrx::*;
 use pyo3::ffi::c_str;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
 
-use crate::pydriver::config::VENV;
-use crate::pymodule;
-
-create_pymodule!("/src/bindings/python/python.py");
-
-pub fn activate_venv(venv: &str) -> Result<bool> {
-    Python::with_gil(|py| {
-        let activate_venv = get_module!(PY_MODULE).getattr(py, "activate_venv")?;
-        let result = activate_venv.call1(py, (PyString::new(py, venv),))?;
-
-        Ok(result.extract(py)?)
-    })
+pub trait TracebackError<T> {
+    fn format_traceback(self, py: Python<'_>) -> eyre::Result<T>;
 }
 
-pub fn activate() -> Result<bool> {
-    match VENV.get() {
-        Some(venv) => activate_venv(&venv.to_string_lossy()),
-        None => Ok(false),
+impl<T> TracebackError<T> for PyResult<T> {
+    fn format_traceback(self, py: Python<'_>) -> eyre::Result<T> {
+        self.map_err(|e| match e.traceback(py) {
+            Some(traceback) => match traceback.format() {
+                Ok(traceback) => eyre::eyre!("{traceback} {e}"),
+                Err(format_e) => eyre::eyre!("{e} {format_e}"),
+            },
+            None => eyre::eyre!("{e}"),
+        })
     }
 }
 
-pub fn pip_freeze() -> Result<TableIterator<'static, (name!(package, String),)>> {
-    let packages = Python::with_gil(|py| -> Result<Vec<String>> {
-        let freeze = get_module!(PY_MODULE).getattr(py, "freeze")?;
-        let result = freeze.call0(py)?;
-
-        Ok(result.extract(py)?)
-    })?;
-
-    Ok(TableIterator::new(
-        packages.into_iter().map(|package| (package,)),
-    ))
+#[pyfunction]
+pub fn info(message: String) -> PyResult<()> {
+    println!("INFO: {message}");
+    Ok(())
 }
 
-pub fn validate_dependencies() -> Result<bool> {
-    Python::with_gil(|py| {
-        let sys = PyModule::import(py, "sys").unwrap();
-        let executable: String = sys.getattr("executable").unwrap().extract().unwrap();
-        let version: String = sys.getattr("version").unwrap().extract().unwrap();
-        info!("Python version: {version}, executable: {}", executable);
-        for module in ["xgboost", "lightgbm", "numpy", "sklearn"] {
-            match py.import(module) {
-                Ok(_) => (),
-                Err(e) => {
-                    panic!("The {module} package is missing. Install it with `sudo pip3 install {module}`\n{e}");
-                }
-            }
+macro_rules! pymodule {
+    ($pyfile:literal) => {
+        pub static PY_MODULE: once_cell::sync::Lazy<eyre::Result<pyo3::Py<pyo3::types::PyModule>>> =
+            once_cell::sync::Lazy::new(|| {
+                pyo3::Python::with_gil(|py| -> eyre::Result<pyo3::Py<pyo3::types::PyModule>> {
+                    use crate::pydriver::venv::TracebackError;
+                    let src = c_str!(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), $pyfile)));
+                    let module = pyo3::types::PyModule::from_code(
+                        py,
+                        src,
+                        c_str!("module.py"),
+                        c_str!("__main__"),
+                    )
+                    .format_traceback(py)?;
+                    module.add_function(wrap_pyfunction!($crate::pydriver::venv::info, &module)?)?;
+                    Ok(module.into())
+                })
+            });
+    };
+}
+
+macro_rules! get_module {
+    ($module:ident) => {
+        match $module.as_ref() {
+            Ok(module) => module,
+            Err(e) => eyre::bail!(e),
         }
-    });
-
-    let sklearn = package_version("sklearn")?;
-    let xgboost = package_version("xgboost")?;
-    let lightgbm = package_version("lightgbm")?;
-    let numpy = package_version("numpy")?;
-
-    info!("Scikit-learn {sklearn}, XGBoost {xgboost}, LightGBM {lightgbm}, NumPy {numpy}",);
-
-    Ok(true)
+    };
 }
 
-pub fn version() -> Result<String> {
-    Python::with_gil(|py| {
-        let sys = PyModule::import(py, "sys").unwrap();
-        let version: String = sys.getattr("version").unwrap().extract().unwrap();
-        Ok(version)
-    })
-}
+pymodule!("/src/pydriver/venv/venv.py");
 
-pub fn package_version(name: &str) -> Result<String> {
-    Python::with_gil(|py| {
-        let package = py.import(name)?;
-        Ok(package.getattr("__version__")?.extract()?)
-    })
+pub fn with_venv(py: Python<'_>) -> Result<bool> {
+    const THIS_VENV: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/.venv");
+    dbg!(THIS_VENV);
+    let activate_venv = get_module!(PY_MODULE).getattr(py, "activate_venv")?;
+    let result = activate_venv.call1(py, (PyString::new(py, THIS_VENV),))?;
+
+    // Debug: Print sys.path after activation
+    let get_sys_path = get_module!(PY_MODULE).getattr(py, "get_sys_path")?;
+    let sys_path = get_sys_path.call0(py)?;
+    println!("Python sys.path after activation: {:?}", sys_path);
+
+    Ok(result.extract(py)?)
 }

@@ -1,5 +1,4 @@
 import torch
-from safetensors.torch import load_file
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 

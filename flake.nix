@@ -74,26 +74,11 @@
               zlib
               pkg-config
               flex
-
-              python311
-              #python3Packages.numpy
-              #python3Packages.sentencepiece
-              #python3Packages.torch
-              #python3Packages.safetensors
-              #python3Packages.transformers
-              #python3Packages.tokenizers
-              #python3Packages.accelerate
-              #python3Packages.tensorflow-deps
-              #python3Packages.pytorch
-              #python3Packages.torchvision
-              #python3Packages.torchaudio
-              #python3Packages.tensorflowWithoutCuda
-              #python3Packages.pip
-              #python3Packages.virtualenv
+              python3
+              python3Packages.pybind11
+              uv
             ]
             ++ lib.optionals pkgs.stdenv.isDarwin [
-              #python3Packages.tensorflow-macos
-              #python3Packages.tensorflow-metal
               libiconv
               darwin.apple_sdk.frameworks.SystemConfiguration
               darwin.apple_sdk.frameworks.CoreFoundation
@@ -101,29 +86,28 @@
               darwin.apple_sdk.frameworks.Metal
               darwin.ICU.dev
               darwin.ICU
-              # darwin.xcode_16_2
             ];
 
-          shellHook = ''
-            if [ ! -d ".venv" ]; then
-              python -m venv .venv
-              source .venv/bin/activate
-              pip install -r requirements.txt
-            else
-              source .venv/bin/activate
-            fi
-
+          shellHook = with pkgs; ''
             export RUSTFLAGS="-Clink-args=-Wl,-undefined,dynamic_lookup";
-            export PKG_CONFIG_PATH="${pkgs.icu}/lib/pkgconfig";
-            export LDFLAGS="-L${pkgs.icu}/lib";
-            export CPPFLAGS="-I${pkgs.icu}/include";
+            export PKG_CONFIG_PATH="${icu}/lib/pkgconfig";
+            export LDFLAGS="-L${icu}/lib";
+            export CPPFLAGS="-I${icu}/include";
+
+            export PYTHONPATH=${python3}/lib/python3.12/site-packages
+            export LD_LIBRARY_PATH=${python3}/lib:$LD_LIBRARY_PATH
+            export DYLD_LIBRARY_PATH=${python3}/lib:$DYLD_LIBRARY_PATH
+            export PYO3_PYTHON=${python3}/bin/python3
+
+            python -c "import sys; print(sys.version)"
+            python -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))"
 
             # by default, run against pg17
             PG_VERSION=pg17
 
-            pgrx-install() {
-              cargo pgrx install -c $HOME/.pgrx/17.*/pgrx-install/bin/pg_config
-            }
+            source ./.venv/bin/activate
+
+            exec zsh
           '';
         };
       }
