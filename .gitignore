@@ -2,3 +2,4 @@
 /resources
 /resources-phi
 /.venv
+__pycache__
