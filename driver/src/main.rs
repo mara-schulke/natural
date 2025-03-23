@@ -1,55 +1,11 @@
-//use llama_cpp::standard_sampler::StandardSampler;
-//use llama_cpp::{LlamaModel, LlamaParams, SessionParams};
-use std::io::{self, Write};
+use std::io::Write;
 
 use llama_cpp_2::context::LlamaContext;
 use llama_cpp_2::ggml_time_us;
+use sqlparser::ast::Statement;
 use std::time::Duration;
 
-const MODEL_SETUP: &str = r#"
-*This is a system message for context*
-
-You MUST generate ONLY one VALID PostgreSQL query that queries the following SQL schema.
-
-Here is the DB Schema:
-
-CREATE TABLE customer (
- id INT AUTO_INCREMENT PRIMARY KEY,
- name VARCHAR(50) NOT NULL,
- postalCode VARCHAR(15) default NULL
-);
-
-CREATE TABLE product (
- id INT AUTO_INCREMENT PRIMARY KEY,
- product_name VARCHAR(50) NOT NULL,
- price VARCHAR(7) NOT NULL,
- qty VARCHAR(4) NOT NULL
-);
-
-CREATE TABLE order (
- id INT AUTO_INCREMENT PRIMARY KEY,
- product_id INT REFERENCES product(id) NOT NULL,
- customer_id INT REFERENCES customer(id) NOT NULL,
- at TIMESTAMPTZ NOT NULL
-);
-
-
-If you do string comparisons do them exact.
-If you do time comparisons use postgres syntax.
-
-You are expected to output NOTHING EXCEPT the SQL Query,
-not a single character that is not part of the SQL query.
-All outputs must comply to postgres syntax.
-
-*END OF SYSTEM INSTRUCTIONS NOW THE ACTUAL PROMPT IS PROVIDED*
-
-"#;
-
-const MODEL_PROMPT: &str = r#"
-Give me all orders made by "Herbert" today of that contain the product "Toothbrush".
-"#;
-
-use eyre::{Context, Result};
+use eyre::{ensure, eyre, Context, ContextCompat, Result};
 use llama_cpp_2::context::params::LlamaContextParams;
 use llama_cpp_2::llama_backend::LlamaBackend;
 use llama_cpp_2::llama_batch::LlamaBatch;
@@ -58,6 +14,24 @@ use llama_cpp_2::model::{AddBos, LlamaModel, Special};
 use llama_cpp_2::sampling::LlamaSampler;
 use sqlparser::dialect::PostgreSqlDialect;
 use sqlparser::parser::Parser;
+
+const PROMPT: &str = r#"
+You are an expert SQL query generator that converts natural language to SQL.
+
+<schema>{SCHEMA}</schema>
+
+<question>{QUESTION}</question>
+
+Based on the schema, generate the most efficient SQL query that answers the question.
+You can only reference tables and columns outlined in the schema!
+Output SQL must be postgres compliant.
+
+Output your response in this exact format:
+
+<sql>
+[OUTPUT SQL QUERY]
+</sql>
+"#;
 
 pub struct SqlGenerator<'c> {
     context: llama_cpp_2::context::LlamaContext<'c>,
@@ -72,11 +46,10 @@ impl<'c> SqlGenerator<'c> {
         })
     }
 
-    pub fn generate(&mut self, query: &str, schema: &str) -> Result<String> {
-        let prompt = format!(
-            "Generate SQL for this request. Schema: {}\nRequest: {}\nOnly output the SQL query with no explanation:\n",
-            schema, query
-        );
+    pub fn generate(&mut self, query: &str, schema: &str) -> Result<Statement> {
+        let prompt = PROMPT
+            .replace("{QUESTION}", query)
+            .replace("{SCHEMA}", schema);
 
         let tokens = self.context.model.str_to_token(&prompt, AddBos::Always)?;
 
@@ -112,7 +85,7 @@ impl<'c> SqlGenerator<'c> {
 
                 // is it an end of stream?
                 if self.context.model.is_eog_token(token) {
-                    eprintln!();
+                    eprintln!("DONE");
                     break;
                 }
 
@@ -120,15 +93,14 @@ impl<'c> SqlGenerator<'c> {
                     .context
                     .model
                     .token_to_bytes(token, Special::Tokenize)?;
-                // use `Decoder.decode_to_string()` to avoid the intermediate buffer
-                let mut decoded = String::with_capacity(32);
+
+                let mut decoded = String::with_capacity(64);
 
                 let _decode_result = decoder.decode_to_string(&output_bytes, &mut decoded, false);
 
-                output.push_str(&decoded);
+                dbg!(_decode_result);
 
-                print!("{decoded}");
-                std::io::stdout().flush()?;
+                output.push_str(&decoded);
 
                 batch.clear();
                 batch.add(token, n_cur, &[0], true)?;
@@ -148,27 +120,34 @@ impl<'c> SqlGenerator<'c> {
         let duration = Duration::from_micros((t_main_end - t_main_start) as u64);
         dbg!(duration);
 
-        let sql = dbg!(self.extract_sql(&output));
+        let sql = dbg!(self.extract_sql(&output))?;
 
-        self.validate_sql(&sql)?;
+        let parsed = Parser::parse_sql(&self.dialect, &sql).context("Invalid SQL syntax")?;
 
-        Ok(sql)
+        ensure!(
+            parsed.len() == 1,
+            "expected llm to output exactly one sql query"
+        );
+
+        Ok(parsed[0].clone())
     }
 
-    fn extract_sql(&self, output: &str) -> String {
+    fn extract_sql(&self, output: &str) -> eyre::Result<String> {
         output
             .lines()
             .filter(|line| !line.starts_with("```") && !line.trim().is_empty())
             .collect::<Vec<&str>>()
             .join("\n")
             .trim()
-            .to_string()
-    }
-
-    fn validate_sql(&self, sql: &str) -> Result<()> {
-        Parser::parse_sql(&self.dialect, sql)
-            .map(|_| ())
-            .context("Invalid SQL syntax")
+            .strip_prefix("<sql>")
+            .wrap_err_with(|| {
+                eyre!("Unexpected model output: Missing opening sql tag: {output:#?}")
+            })?
+            .strip_suffix("</sql>")
+            .wrap_err_with(|| {
+                eyre!("Unexpected model output: Missing closing sql tag: {output:#?}")
+            })
+            .map(|o| o.to_string())
     }
 }
 
@@ -181,8 +160,8 @@ fn main() -> eyre::Result<()> {
 
     let mut generator = SqlGenerator::new(context).unwrap();
 
-    let schema = "CREATE TABLE users (id INT PRIMARY KEY, name TEXT, email TEXT);";
-    let query = "Find all users with gmail addresses";
+    let schema = "CREATE TABLE users (id INT PRIMARY KEY, name TEXT, email TEXT);\n CREATE TABLE orders (id SERIAL PRIMARY KEY, product TEXT NOT NULL);";
+    let query = "Find all users who are named henry";
 
     match generator.generate(query, schema) {
         Ok(sql) => println!("Generated SQL: {}", sql),
