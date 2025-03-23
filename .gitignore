@@ -2,3 +2,6 @@
 /resources
 /resources-phi
 /.venv
+__pycache__
+.pgrx
+mistral.gguf
