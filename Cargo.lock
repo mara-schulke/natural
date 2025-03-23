@@ -401,6 +401,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f46ad14479a25103f283c0f10005961cf086d8dc42205bb44c46ac563475dca6"
 
 [[package]]
+name = "cmake"
+version = "0.1.54"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7caa3f9de89ddbe2c607f4101924c5abec803763ae9534e4f4d7d8f84aa81f0"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "colorchoice"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -418,12 +427,6 @@ dependencies = [
  "unicode-width",
  "windows-sys 0.59.0",
 ]
-
-[[package]]
-name = "convert_case"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 
 [[package]]
 name = "convert_case"
@@ -579,19 +582,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derive_more"
-version = "0.99.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3da29a38df43d6f156149c9b43ded5e018ddff2a855cf2cfd62e8cd7d079c69f"
-dependencies = [
- "convert_case 0.4.0",
- "proc-macro2",
- "quote",
- "rustc_version",
- "syn",
-]
-
-[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -676,6 +666,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "enumflags2"
+version = "0.7.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba2f4b465f5318854c6f8dd686ede6c0a9dc67d4b1ac241cf0eb51521a309147"
+dependencies = [
+ "enumflags2_derive",
+]
+
+[[package]]
+name = "enumflags2_derive"
+version = "0.7.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc4caf64a58d7a6d65ab00639b046ff54399a39f5f2554728895ace4b297cd79"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -721,6 +731,15 @@ name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
+
+[[package]]
+name = "find_cuda_helper"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9f9e65c593dd01ac77daad909ea4ad17f0d6d1776193fc8ea766356177abdad"
+dependencies = [
+ "glob",
+]
 
 [[package]]
 name = "fixedbitset"
@@ -994,7 +1013,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "thiserror 2.0.11",
+ "thiserror 2.0.12",
  "tokio",
  "ureq",
  "windows-sys 0.59.0",
@@ -1305,12 +1324,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "indoc"
-version = "2.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4c7245a08504955605670dbf141fceab975f15ca21570696aebe9d2e71576bd"
-
-[[package]]
 name = "ipnet"
 version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1421,15 +1434,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "link-cplusplus"
-version = "1.0.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a6f6da007f968f9def0d65a05b187e2960183de70c160204ecfccf0ee330212"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "linux-raw-sys"
 version = "0.4.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1442,30 +1446,41 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23fb14cb19457329c82206317a5663005a4d404783dc74f4252769b0d5f42856"
 
 [[package]]
-name = "llama_cpp"
-version = "0.3.2"
+name = "llama-cpp-2"
+version = "0.1.102"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f126770a2ed5e0e4596119479dc56f56b99037246bf0e36c544f7581a9458fd"
+checksum = "a419bb48efa0f8389a82301f1f64e2874568a3fbf6f62f8ddab5324382b82768"
 dependencies = [
- "derive_more",
- "futures",
- "llama_cpp_sys",
- "num_cpus",
+ "enumflags2",
+ "llama-cpp-sys-2",
  "thiserror 1.0.69",
- "tokio",
  "tracing",
+ "tracing-core",
 ]
 
 [[package]]
-name = "llama_cpp_sys"
-version = "0.3.2"
+name = "llama-cpp-sys-2"
+version = "0.1.102"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "037a1881ada3592c6a922224d5177b4b4f452e6b2979eb97393b71989e48357f"
+checksum = "0522f9894e22dd988dd2e34222bda7acba53a0dcce744ca6d8ddce905ba33a4e"
 dependencies = [
  "bindgen 0.69.5",
  "cc",
- "link-cplusplus",
- "once_cell",
+ "cmake",
+ "find_cuda_helper",
+ "glob",
+ "walkdir",
+]
+
+[[package]]
+name = "llm-pgrx"
+version = "0.1.0"
+dependencies = [
+ "encoding_rs",
+ "eyre",
+ "llama-cpp-2",
+ "sqlparser",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -1515,15 +1530,6 @@ name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
-
-[[package]]
-name = "memoffset"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
-dependencies = [
- "autocfg",
-]
 
 [[package]]
 name = "mime"
@@ -1815,11 +1821,8 @@ dependencies = [
  "crossbeam-channel",
  "eyre",
  "hf-hub",
- "llama_cpp",
- "llama_cpp_sys",
  "pgrx",
  "pgrx-tests",
- "pyo3",
  "pyo3-ffi",
  "serde",
  "serde_json",
@@ -1849,7 +1852,7 @@ dependencies = [
  "serde",
  "serde_cbor",
  "serde_json",
- "thiserror 2.0.11",
+ "thiserror 2.0.12",
  "uuid",
 ]
 
@@ -1896,7 +1899,7 @@ dependencies = [
  "pathsearch",
  "serde",
  "serde_json",
- "thiserror 2.0.11",
+ "thiserror 2.0.12",
  "toml",
  "url",
 ]
@@ -1922,13 +1925,13 @@ version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8f625bb35d59b2d6f308ed5d1b6da3783c8514d47f353ec23a8f05da0fef6f4"
 dependencies = [
- "convert_case 0.7.1",
+ "convert_case",
  "eyre",
  "petgraph",
  "proc-macro2",
  "quote",
  "syn",
- "thiserror 2.0.11",
+ "thiserror 2.0.12",
  "unescape",
 ]
 
@@ -1954,7 +1957,7 @@ dependencies = [
  "serde_json",
  "shlex",
  "sysinfo",
- "thiserror 2.0.11",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -2091,21 +2094,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "pyo3"
-version = "0.24.0"
+name = "psm"
+version = "0.1.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f1c6c3591120564d64db2261bec5f910ae454f01def849b9c22835a84695e86"
+checksum = "f58e5423e24c18cc840e1c98370b3993c6649cd1678b4d24318bcf0a083cbe88"
 dependencies = [
- "cfg-if",
- "indoc",
- "libc",
- "memoffset",
- "once_cell",
- "portable-atomic",
- "pyo3-build-config",
- "pyo3-ffi",
- "pyo3-macros",
- "unindent",
+ "cc",
 ]
 
 [[package]]
@@ -2126,31 +2120,6 @@ checksum = "5507651906a46432cdda02cd02dd0319f6064f1374c9147c45b978621d2c3a9c"
 dependencies = [
  "libc",
  "pyo3-build-config",
-]
-
-[[package]]
-name = "pyo3-macros"
-version = "0.24.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0d394b5b4fd8d97d48336bb0dd2aebabad39f1d294edd6bcd2cccf2eefe6f42"
-dependencies = [
- "proc-macro2",
- "pyo3-macros-backend",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "pyo3-macros-backend"
-version = "0.24.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd72da09cfa943b1080f621f024d2ef7e2773df7badd51aa30a2be1f8caa7c8e"
-dependencies = [
- "heck",
- "proc-macro2",
- "pyo3-build-config",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -2272,6 +2241,26 @@ checksum = "1465873a3dfdaa8ae7cb14b4383657caab0b3e8a0aa9ae8e04b044854c8dfce2"
 dependencies = [
  "crossbeam-deque",
  "crossbeam-utils",
+]
+
+[[package]]
+name = "recursive"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0786a43debb760f491b1bc0269fe5e84155353c67482b9e60d0cfb596054b43e"
+dependencies = [
+ "recursive-proc-macro-impl",
+ "stacker",
+]
+
+[[package]]
+name = "recursive-proc-macro-impl"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76009fbe0614077fc1a2ce255e3a1881a2e3a3527097d5dc6d8212c585e7e38b"
+dependencies = [
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -2700,10 +2689,33 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b9b39299b249ad65f3b7e96443bad61c02ca5cd3589f46cb6d610a0fd6c0d6a"
 
 [[package]]
+name = "sqlparser"
+version = "0.55.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4521174166bac1ff04fe16ef4524c70144cd29682a45978978ca3d7f4e0be11"
+dependencies = [
+ "log",
+ "recursive",
+]
+
+[[package]]
 name = "stable_deref_trait"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
+
+[[package]]
+name = "stacker"
+version = "0.1.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "601f9201feb9b09c00266478bf459952b9ef9a6b94edb2f21eba14ab681a60a9"
+dependencies = [
+ "cc",
+ "cfg-if",
+ "libc",
+ "psm",
+ "windows-sys 0.59.0",
+]
 
 [[package]]
 name = "stringprep"
@@ -2850,11 +2862,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.11"
+version = "2.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d452f284b73e6d76dd36758a0c8684b1d5be31f92b89d07fd5822175732206fc"
+checksum = "567b8a2dae586314f7be2a752ec7474332959c6460e02bde30d702a66d488708"
 dependencies = [
- "thiserror-impl 2.0.11",
+ "thiserror-impl 2.0.12",
 ]
 
 [[package]]
@@ -2870,9 +2882,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.11"
+version = "2.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26afc1baea8a989337eeb52b6e72a039780ce45c3edfcc9c5b9d112feeb173c2"
+checksum = "7f7cf42b4507d8ea322120659672cf1b9dbb93f8f2d4ecfd6e51350ff5b17a1d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3238,12 +3250,6 @@ name = "unicode_categories"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39ec24b3121d976906ece63c9daad25b85969647682eee313cb5779fdd69e14e"
-
-[[package]]
-name = "unindent"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7264e107f553ccae879d21fbea1d6724ac785e8c3bfc762137959b5802826ef3"
 
 [[package]]
 name = "untrusted"
