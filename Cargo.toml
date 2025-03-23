@@ -20,10 +20,6 @@ name = "pgpt"
 version.workspace = true
 edition.workspace = true
 
-[package.metadata.maturin]
-python-source = "python"
-python-library = "python3.12"
-
 [lib]
 crate-type = ["cdylib", "lib"]
 
@@ -31,21 +27,8 @@ crate-type = ["cdylib", "lib"]
 name = "pgrx_embed_pgpt"
 path = "./src/bin/pgrx_embed.rs"
 
-[[bin]]
-name = "test"
-path = "./src/bin/test.rs"
-
-[[bin]]
-name = "daemon"
-path = "./src/bin/daemon.rs"
-
 [features]
 default = ["pg17"]
-pg12 = ["pgrx/pg12", "pgrx-tests/pg12" ]
-pg13 = ["pgrx/pg13", "pgrx-tests/pg13" ]
-pg14 = ["pgrx/pg14", "pgrx-tests/pg14" ]
-pg15 = ["pgrx/pg15", "pgrx-tests/pg15" ]
-pg16 = ["pgrx/pg16", "pgrx-tests/pg16" ]
 pg17 = ["pgrx/pg17", "pgrx-tests/pg17" ]
 pg_test = []
 
@@ -60,10 +43,9 @@ codegen-units = 1
 
 [dependencies]
 crossbeam-channel = "0.5"
-#candle-core = { version = "0.8.3", features = ["metal"] }
-#candle-nn = { version = "0.8.3", features = ["metal"] }
-#candle-transformers = { version = "0.8.3", features = ["metal"] }
-pyo3-ffi = "0.24.0"
+candle-core = { version = "0.8.3", features = ["metal"] }
+candle-nn = { version = "0.8.3", features = ["metal"] }
+candle-transformers = { version = "0.8.3", features = ["metal"] }
 clap.workspace = true
 eyre.workspace = true
 hf-hub = "0.4.1"
@@ -77,10 +59,6 @@ tracing-subscriber.workspace = true
 uuid = { version = "1", features = ["v4"] }
 llama_cpp = { version = "0.3.2", features = ["metal"] }
 llama_cpp_sys = { version = "0.3.2", features = ["metal"] }
-
-[dependencies.pyo3]
-version = "0.24.0"
-features = ["auto-initialize", "abi3-py312"]
 
 [dev-dependencies]
 pgrx-tests = "=0.13.1"

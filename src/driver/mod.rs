@@ -10,20 +10,20 @@ use std::{
 
 use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
 use eyre::eyre;
-//use generation::TextGenerator;
+use generation::TextGenerator;
 use uuid::Uuid;
 
 use model::Model;
 
+pub mod generation;
 pub mod model;
+pub mod utils;
 
 static MODEL: LazyLock<model::Model> = LazyLock::new(|| {
-    dbg!(concat!(env!("PWD"), "/mistral.gguf"));
-
     let start = Instant::now();
 
-    let model =
-        Model::load(concat!(env!("PWD"), "/mistral.gguf")).expect("loading the model failed");
+    dbg!(concat!(env!("PWD"), "/resources"));
+    let model = Model::load(concat!(env!("PWD"), "/resources")).expect("loading the model failed");
 
     let end = Instant::now();
 
@@ -118,10 +118,13 @@ impl Driver {
         dbg!("recv");
 
         let prompt = self.prompts.recv().unwrap();
+        let model = self.model.clone();
 
         dbg!("gen");
 
-        let tokens = generation::Generator(&self.model).run(prompt).unwrap();
+        let tokens = TextGenerator::new(model, 0, None, None, None, 1.1, 64)
+            .run(prompt)
+            .unwrap();
 
         dbg!("token");
 
@@ -135,9 +138,10 @@ impl Driver {
     }
 }
 
+#[derive(Debug)]
 pub struct Prompt {
-    id: Uuid,
-    payload: String,
+    pub id: Uuid,
+    pub payload: String,
 }
 
 impl<T> From<T> for Prompt
@@ -211,54 +215,6 @@ impl DriverHandle {
         }
 
         tokens.join("")
-    }
-}
-
-pub mod generation {
-    use llama_cpp::{standard_sampler::StandardSampler, SessionParams};
-
-    use super::{model::Model, Prompt, Token};
-
-    pub struct Generator(pub &'static Model);
-
-    impl Generator {
-        pub fn run(&self, prompt: Prompt) -> eyre::Result<Vec<Token>> {
-            let mut ctx = self
-                .0
-                 .0
-                .create_session(SessionParams::default())
-                .expect("Failed to create session");
-
-            ctx.set_context(prompt.payload).unwrap();
-
-            let max_tokens = 128;
-            let mut decoded_tokens = 0;
-
-            let completions = ctx
-                .start_completing_with(StandardSampler::default(), max_tokens)?
-                .into_strings();
-
-            let mut tokens = vec![];
-
-            for completion in completions {
-                dbg!(&completion);
-
-                tokens.push(Token::Completion {
-                    prompt: prompt.id,
-                    token: completion,
-                });
-
-                decoded_tokens += 1;
-
-                if decoded_tokens > max_tokens {
-                    break;
-                }
-            }
-
-            tokens.push(Token::Eos { prompt: prompt.id });
-
-            Ok(tokens)
-        }
     }
 }
 
