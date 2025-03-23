@@ -27,38 +27,23 @@
 
         inherit (pkgs) lib;
 
-        supportedPostgres = with pkgs; [
-          postgresql_13
-          postgresql_14
-          postgresql_15
-          postgresql_16
-          postgresql_17
-        ];
+        packages = {
+          natural = polar.lib.buildPgrxExtension {
+            inherit system;
+            postgresql = pkgs.postgresql_17;
+            src = ./.;
+          };
+        };
 
         listToAttrset = list: fn: lib.foldl' lib.attrsets.recursiveUpdate { } (map fn list);
 
-        packages = listToAttrset supportedPostgres (
-          postgresql:
-          let
-            major = lib.versions.major postgresql.version;
-          in
-          {
-            "natural-${major}" = polar.lib.buildPgrxExtension {
-              inherit system postgresql;
-              src = ./.;
-            };
-          }
-        );
-
-        checks = listToAttrset supportedPostgres (
-          postgresql:
-          let
-            major = lib.versions.major postgresql.version;
-          in
-          {
-            "natural-${major}" = self.packages.${system}."natural-${major}";
-          }
-        );
+        checks = listToAttrset [ "13" "14" "15" "16" "17" ] (postgresql: {
+          "natural-${postgresql}" = polar.lib.buildPgrxExtension {
+            inherit system;
+            postgresql = pkgs."postgresql_${postgresql}";
+            src = ./.;
+          };
+        });
       in
       {
         inherit packages checks;

@@ -1602,6 +1602,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "natural"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "crossbeam-channel",
+ "eyre",
+ "hf-hub",
+ "pgrx",
+ "pgrx-tests",
+ "pyo3-ffi",
+ "serde",
+ "serde_json",
+ "tokenizers",
+ "tracing-chrome",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "nom"
 version = "7.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1811,25 +1830,6 @@ checksum = "3672b37090dbd86368a4145bc067582552b29c27377cad4e0a306c97f9bd7772"
 dependencies = [
  "fixedbitset",
  "indexmap",
-]
-
-[[package]]
-name = "pgpt"
-version = "0.1.0"
-dependencies = [
- "clap",
- "crossbeam-channel",
- "eyre",
- "hf-hub",
- "pgrx",
- "pgrx-tests",
- "pyo3-ffi",
- "serde",
- "serde_json",
- "tokenizers",
- "tracing-chrome",
- "tracing-subscriber",
- "uuid",
 ]
 
 [[package]]
