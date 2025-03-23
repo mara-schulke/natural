@@ -7,7 +7,7 @@ version = "0.1.0"
 edition = "2021"
 
 [package]
-name = "pgpt"
+name = "natural"
 version.workspace = true
 edition.workspace = true
 
@@ -15,7 +15,7 @@ edition.workspace = true
 crate-type = ["cdylib", "lib"]
 
 [[bin]]
-name = "pgrx_embed_pgpt"
+name = "pgrx_embed_natural"
 path = "./src/bin/pgrx_embed.rs"
 
 [[bin]]

@@ -1,6 +1,6 @@
-comment = 'pgpt'
+comment = 'natural'
 default_version = '@CARGO_VERSION@'
-module_pathname = '$libdir/pgpt'
+module_pathname = '$libdir/natural'
 relocatable = false
 superuser = true
 trusted = false
