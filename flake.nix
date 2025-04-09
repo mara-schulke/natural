@@ -13,7 +13,6 @@
   };
   outputs =
     {
-      self,
       utils,
       nixpkgs,
       polar,
@@ -61,6 +60,20 @@
               flex
               cmake
               python3
+              postgresql
+              postgresql.dev
+              glib
+              gnumake
+              clang
+
+              llvmPackages.libclang
+              llvmPackages.libclang.lib
+
+              blas
+              lapack
+              openblas
+    
+              cudaPackages.cudatoolkit
             ]
             ++ lib.optionals pkgs.stdenv.isDarwin [
               libiconv
@@ -72,11 +85,22 @@
               darwin.ICU
             ];
 
-          shellHook = ''
+          nativeBuildInputs = [ pkgs.pkg-config ];
+
+
+            # export LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}/lib";
+            # export C_INCLUDE_PATH="${pkgs.lib.makeSearchPathOutput "dev" "include" [ pkgs.stdenv.cc.cc ]}:$C_INCLUDE_PATH"
+            # export CPLUS_INCLUDE_PATH="${pkgs.lib.makeSearchPathOutput "dev" "include" [ pkgs.stdenv.cc.cc ]}:$CPLUS_INCLUDE_PATH"
+            # export LIBRARY_PATH="${pkgs.lib.makeLibraryPath [ pkgs.stdenv.cc.cc.lib ]}:$LIBRARY_PATH"
+            # export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath [ pkgs.stdenv.cc.cc.lib ]}:$LD_LIBRARY_PATH"
+
+          shellHook = with pkgs; ''
             export RUSTFLAGS="-Clink-args=-Wl,-undefined,dynamic_lookup";
-            export PKG_CONFIG_PATH="${pkgs.icu}/lib/pkgconfig";
-            export LDFLAGS="-L${pkgs.icu}/lib";
-            export CPPFLAGS="-I${pkgs.icu}/include";
+            export PKG_CONFIG_PATH="${icu}/lib/pkgconfig";
+            export LDFLAGS="-L${icu}/lib";
+            export CPPFLAGS="-I${icu}/include";
+            export CUDA_PATH="${cudaPackages.cudatoolkit}";
+            export LIBCLANG_PATH="${llvmPackages.libclang.lib}/lib";
 
             PG_VERSION=pg17
           '';
