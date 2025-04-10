@@ -22,7 +22,10 @@
     utils.lib.eachDefaultSystem (
       system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs {
+          inherit system;
+          config.allowUnfree = true;
+        };
 
         inherit (pkgs) lib;
 
@@ -63,7 +66,9 @@
               postgresql
               postgresql.dev
               glib
+              gcc13
               gnumake
+              autoconf
               clang
 
               llvmPackages.libclang
@@ -72,8 +77,15 @@
               blas
               lapack
               openblas
-    
+
               cudaPackages.cudatoolkit
+              cudaPackages.cudnn
+              cudaPackages.cuda_cudart
+              cudaPackages.cuda_nvcc
+              cudaPackages.cuda_cccl
+              cudaPackages.cuda_cudart
+              cudaPackages.cuda_cudart.static
+              linuxPackages.nvidia_x11
             ]
             ++ lib.optionals pkgs.stdenv.isDarwin [
               libiconv
@@ -85,22 +97,31 @@
               darwin.ICU
             ];
 
-          nativeBuildInputs = [ pkgs.pkg-config ];
-
-
-            # export LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}/lib";
-            # export C_INCLUDE_PATH="${pkgs.lib.makeSearchPathOutput "dev" "include" [ pkgs.stdenv.cc.cc ]}:$C_INCLUDE_PATH"
-            # export CPLUS_INCLUDE_PATH="${pkgs.lib.makeSearchPathOutput "dev" "include" [ pkgs.stdenv.cc.cc ]}:$CPLUS_INCLUDE_PATH"
-            # export LIBRARY_PATH="${pkgs.lib.makeLibraryPath [ pkgs.stdenv.cc.cc.lib ]}:$LIBRARY_PATH"
-            # export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath [ pkgs.stdenv.cc.cc.lib ]}:$LD_LIBRARY_PATH"
+          nativeBuildInputs = with pkgs; [
+            pkg-config
+            cudaPackages.cudatoolkit
+            cudaPackages.cuda_cudart
+            cudaPackages.cuda_cudart.static
+          ];
 
           shellHook = with pkgs; ''
-            export RUSTFLAGS="-Clink-args=-Wl,-undefined,dynamic_lookup";
+            export PATH="${pkgs.gcc13}/bin:$PATH"
+
+            export CC=${cudatoolkit.cc}/bin/gcc 
+            export CXX=${cudatoolkit.cc}/bin/g++
+            export LIBCLANG_PATH="${llvmPackages.libclang.lib}/lib";
+
+            export RUSTFLAGS="-Clink-args=-Wl,-undefined,dynamic_lookup -L${cudaPackages.cuda_cudart.static}/lib -L${cudaPackages.libcublas.static}/lib";
+            export CMAKE_CUDA_FLAGS="-L${cudaPackages.cuda_cudart.static}/lib -L${cudaPackages.libcublas.static}/lib"
+
             export PKG_CONFIG_PATH="${icu}/lib/pkgconfig";
             export LDFLAGS="-L${icu}/lib";
             export CPPFLAGS="-I${icu}/include";
+
             export CUDA_PATH="${cudaPackages.cudatoolkit}";
-            export LIBCLANG_PATH="${llvmPackages.libclang.lib}/lib";
+            #export CUDA_LIBRARY_PATH="${cudaPackages.cudatoolkit}/lib"
+            export LD_LIBRARY_PATH=${linuxPackages.nvidia_x11}/lib:$LD_LIBRARY_PATH
+            export LIBRARY_PATH=${linuxPackages.nvidia_x11}/lib:${cudaPackages.cudatoolkit}/lib:$LIBRARY_PATH
 
             PG_VERSION=pg17
           '';
