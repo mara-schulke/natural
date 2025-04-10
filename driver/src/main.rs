@@ -8,7 +8,8 @@ use llama_cpp_2::model::LlamaModel;
 fn main() -> eyre::Result<()> {
     let backend = LlamaBackend::init()?;
     let model_params = LlamaModelParams::default();
-    let model = LlamaModel::load_from_file(&backend, "/tmp/mistral.gguf", &model_params)?;
+    let model =
+        LlamaModel::load_from_file(&backend, "/home/mara/Workspace/mistral.gguf", &model_params)?;
     let ctx_params = LlamaContextParams::default().with_n_threads(4);
     let context = model.new_context(&backend, ctx_params)?;
 
