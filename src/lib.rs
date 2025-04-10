@@ -26,7 +26,7 @@ fn query(query: &str) -> String {
     use llama_cpp_2::model::LlamaModel;
 
     let backend = LlamaBackend::init().unwrap();
-    let model_params = LlamaModelParams::default();
+    let model_params = LlamaModelParams::default().with_n_gpu_layers(512);
     let model =
         LlamaModel::load_from_file(&backend, "/home/mara/Workspace/mistral.gguf", &model_params)
             .unwrap();
