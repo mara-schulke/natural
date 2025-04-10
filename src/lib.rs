@@ -1,30 +1,43 @@
 use std::time::Duration;
 
-use driver::Driver;
 use pgrx::bgworkers::*;
 use pgrx::prelude::*;
 
 ::pgrx::pg_module_magic!();
 
-pub mod driver;
-
-extension_sql!(
-    r#"
-    CREATE TABLE history (
-        id serial8 not null primary key,
-        query text,
-        output text
-    );
-    "#,
-    name = "pgpt_conversations",
-);
+//extension_sql!(
+//r#"
+//CREATE TABLE history (
+//id serial8 not null primary key,
+//query text,
+//output text
+//);
+//"#,
+//name = "pgpt_conversations",
+//);
 
 #[pg_extern]
 fn query(query: &str) -> String {
-    dbg!(query);
+    use natural_driver::generator::SqlGenerator;
 
-    format!("runs llm with prompt ({query}), queries pg under the hood and returns data")
-        .to_string()
+    use llama_cpp_2::context::params::LlamaContextParams;
+    use llama_cpp_2::llama_backend::LlamaBackend;
+    use llama_cpp_2::model::params::LlamaModelParams;
+    use llama_cpp_2::model::LlamaModel;
+
+    let backend = LlamaBackend::init().unwrap();
+    let model_params = LlamaModelParams::default();
+    let model =
+        LlamaModel::load_from_file(&backend, "/home/mara/Workspace/mistral.gguf", &model_params)
+            .unwrap();
+    let ctx_params = LlamaContextParams::default().with_n_threads(4);
+    let context = model.new_context(&backend, ctx_params).unwrap();
+
+    let mut generator = SqlGenerator::new(context).unwrap();
+
+    let schema = "CREATE TABLE users (id INT PRIMARY KEY, name TEXT, email TEXT);\n CREATE TABLE orders (id SERIAL PRIMARY KEY, product TEXT NOT NULL);";
+
+    generator.generate(query, schema).unwrap().to_string()
 }
 
 #[pg_extern]
@@ -122,9 +135,9 @@ fn issue1209_fixed() -> Result<Option<String>, Box<dyn std::error::Error>> {
 
 #[pg_guard]
 pub extern "C-unwind" fn _PG_init() {
-    BackgroundWorkerBuilder::new("PGPT Inference Worker")
-        .set_function("pgpt_inference_worker")
-        .set_library("pgpt")
+    BackgroundWorkerBuilder::new("Natural Inference Worker")
+        .set_function("natural_inference_worker")
+        .set_library("natural")
         .set_argument(42i32.into_datum())
         .enable_spi_access()
         .load();
@@ -132,7 +145,7 @@ pub extern "C-unwind" fn _PG_init() {
 
 #[pg_guard]
 #[no_mangle]
-pub extern "C-unwind" fn pgpt_inference_worker(arg: pg_sys::Datum) {
+pub extern "C-unwind" fn natural_inference_worker(arg: pg_sys::Datum) {
     let arg = unsafe { i32::from_polymorphic_datum(arg, false, pg_sys::INT4OID) };
 
     // these are the signals we want to receive.  If we don't attach the SIGTERM handler, then
@@ -148,12 +161,6 @@ pub extern "C-unwind" fn pgpt_inference_worker(arg: pg_sys::Datum) {
         BackgroundWorker::get_name(),
         arg.unwrap()
     );
-
-    let mut driver = Driver::boot();
-
-    while BackgroundWorker::wait_latch(Some(Duration::from_millis(25))) {
-        driver.push();
-    }
 
     log!(
         "Goodbye from inside the {} BGWorker! ",

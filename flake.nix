@@ -119,9 +119,10 @@
             export CPPFLAGS="-I${icu}/include";
 
             export CUDA_PATH="${cudaPackages.cudatoolkit}";
-            #export CUDA_LIBRARY_PATH="${cudaPackages.cudatoolkit}/lib"
             export LD_LIBRARY_PATH=${linuxPackages.nvidia_x11}/lib:$LD_LIBRARY_PATH
             export LIBRARY_PATH=${linuxPackages.nvidia_x11}/lib:${cudaPackages.cudatoolkit}/lib:$LIBRARY_PATH
+
+            export BINDGEN_EXTRA_CLANG_ARGS="-I${glibc.dev}/include";
 
             PG_VERSION=pg17
           '';

@@ -1598,6 +1598,8 @@ dependencies = [
  "crossbeam-channel",
  "eyre",
  "hf-hub",
+ "llama-cpp-2",
+ "natural-driver",
  "pgrx",
  "pgrx-tests",
  "pyo3-ffi",
