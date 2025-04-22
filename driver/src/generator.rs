@@ -110,6 +110,8 @@ impl<'c> SqlGenerator<'c> {
 
         let duration = Duration::from_micros((t_main_end - t_main_start) as u64);
 
+        dbg!(duration);
+
         let sql = self.extract_sql(&output)?;
 
         let parsed = Parser::parse_sql(&self.dialect, &sql).context("Invalid SQL syntax")?;

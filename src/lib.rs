@@ -1,9 +1,10 @@
-use std::time::Duration;
-
 use pgrx::bgworkers::*;
 use pgrx::prelude::*;
 
 ::pgrx::pg_module_magic!();
+
+// Legacy / alternative candle-based driver
+// mod driver;
 
 /// Driver invocation through an SQL function against a predefined SQL schema
 ///
