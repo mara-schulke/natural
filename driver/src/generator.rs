@@ -19,12 +19,10 @@ You are an expert SQL query generator that converts natural language to SQL.
 
 Based on the schema, generate the most efficient SQL query that answers the question.
 You can only reference tables and columns outlined in the schema!
-Output SQL must be postgres compliant.
-
-Output your response in this exact format:
+You MUST NOT generate any WORDS beyond valid SQL. Output SQL must be postgres compliant.
 
 <sql>
-[OUTPUT SQL QUERY]
+[YOUR OUTPUT SQL QUERY]
 </sql>
 "#;
 
@@ -93,8 +91,6 @@ impl<'c> SqlGenerator<'c> {
 
                 let _decode_result = decoder.decode_to_string(&output_bytes, &mut decoded, false);
 
-                dbg!(_decode_result);
-
                 output.push_str(&decoded);
 
                 batch.clear();
@@ -113,9 +109,8 @@ impl<'c> SqlGenerator<'c> {
         let t_main_end = ggml_time_us();
 
         let duration = Duration::from_micros((t_main_end - t_main_start) as u64);
-        dbg!(duration);
 
-        let sql = dbg!(self.extract_sql(&output))?;
+        let sql = self.extract_sql(&output)?;
 
         let parsed = Parser::parse_sql(&self.dialect, &sql).context("Invalid SQL syntax")?;
 
